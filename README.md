@@ -4,6 +4,6 @@ Videos from [s4.codes](https://www.tiktok.com/@s4.codes) dropped into Gemini to 
 
 ## how to use
 
-drop this into `~/.claude/skills/clean-code/` and invoke with `/clean-code`
+drop SKILL.md into `~/.claude/skills/clean-code/` and invoke with `/clean-code` command
 
 should work in other tools that have Skills support and check `~/.claude/skills/` folder too (like GitHub Copilot).
