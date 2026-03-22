@@ -5,7 +5,7 @@ description: Clean code principles and best practices covering naming convention
 
 # Clean Code Principles
 
-Apply these principles when writing, reviewing, or refactoring code. They are organized from the most fundamental (naming) to the most architectural (error handling and polymorphism).
+Apply these principles when writing, reviewing, or refactoring code. They are organized from the most fundamental (naming) to code organization, formatting, and commenting best practices.
 
 ---
 
@@ -106,6 +106,33 @@ Don't force readers to mentally translate cryptic abbreviations into their actua
   - Bad: `for (let i=0; i<t.length; i++) { const tx = t[i]; validate(tx); }` — is `tx` time, tax, text, or transaction?
 
 Cryptic names add entries to a developer's "mental stack." The reader's brain gets bogged down deciphering abbreviations instead of focusing on the actual logic.
+
+### 1.7 Expressive Logic (Self-Documenting Code)
+
+Refactor complex logic into well-named variables, functions, and constants so the code explains itself without the need for comments.
+
+**Do:**
+- Extract complex conditions into well-named boolean variables.
+  - Good:
+    ```javascript
+    const isBusinessHour = currentHour >= OPENING_HOUR && currentHour < CLOSING_HOUR;
+    const isBusinessDay = currentDay !== SATURDAY && currentDay !== SUNDAY;
+    const isStoreOpen = isBusinessHour && isBusinessDay && !isHoliday;
+    if (isStoreOpen) { showOpenBanner(); }
+    ```
+- Extract blocks of logic into functions so the code reads like a sentence (e.g., `if (checkIsStoreOpen())`).
+- Give variables descriptive names to fill the gap left by deleted comments (e.g., `let elapsedTimeInDays;`).
+- Extract magic numbers into well-named constants (e.g., `const ONE_DAY_IN_MS = 86400000;`).
+
+**Don't:**
+- Write a comment above a complex `if` statement to explain what it does.
+  - Bad: `// Show banner if the store is currently open` above `if (currentHour >= OPENING_HOUR...)`
+- Use single-letter variables and explain them with a comment.
+  - Bad: `let d; // elapsed time in days`
+- Leave raw "magic numbers" in your code.
+  - Bad: `setTimeout(logoutUser, 86400000);`
+
+Every comment is a second thing to maintain. Code changes, and if you forget to update the comment, it becomes misinformation. Tying the meaning directly to the variable or function name ensures it stays permanently accurate.
 
 ---
 
@@ -253,25 +280,120 @@ Avoid comments that explain *what* code does, as they eventually become outdated
 
 Code changes, but comments often don't. When comments get left behind, they actively deceive developers, leading them to introduce bugs.
 
-### 5.2 Avoid Redundant and Noise Comments
+### 5.2 Rely on Version Control, Not Comments
 
-Don't write comments that restate what the code already clearly communicates; only use comments to explain things the code cannot say itself.
+Never use comments to store old code, authorship, or history logs; and don't use comments to compensate for poorly structured code.
 
 **Do:**
-- Write clear, self-explanatory code (using good variable and function names) that can be read without extra explanation.
-- Respect the reader's time by only interrupting them with a comment when necessary.
-- Write comments that provide important context or constraints that aren't visible in the code itself.
-  - Good: `// DO NOT UPDATE - AWS Lambda limit` above `const MAX_SIZE = 5242880;`
+- Delete commented-out code entirely.
+- Rely on `git log` to find old code, authors, and historical changes.
+- Write clean, small functions that do one thing, so you don't need comments to track where blocks end.
+  - Good:
+    ```javascript
+    function generateReport(data) {
+        const validItems = filterValid(data);
+        const results = processItems(validItems);
+        return buildReport(results);
+    }
+    ```
 
 **Don't:**
-- Write redundant comments that literally translate the code into English.
-  - Bad: `// if there are no items in the cart, return early` above `if (cart.items.length === 0) { return; }`
-- Add "noise" comments that just act as obvious labels for variables, constructors, or simple getters.
-  - Bad: `// The name` above `let name;`, or `// Default constructor` above `constructor() {}`
-- Force documentation blocks (like JSDoc) on every single function just to satisfy a team rule, especially when they add no new information.
-  - Bad: A full JSDoc block on `setUsername(username)` that only says "Sets the username" — adding zero information beyond what the function signature already provides.
+- Leave half-dead commented code in your files.
+- Keep authorship tags (e.g., `// Created by John Doe - March 2019`).
+- Keep journal logs (e.g., `// 11-Oct-2001: Renamed getUserInfo...`).
+- Use closing brace comments to track long functions.
+  - Bad: `} // end outer for loop`
+- Use visual position markers to separate messy files.
+  - Bad: `// ======== HELPERS ========`
 
-Redundant comments cause three major problems. **Clutter:** they double the text a developer must scan without adding understanding. **Maintenance:** every code change requires updating the useless comment alongside it — forget once and the comment becomes a lie (e.g., `// Check if user is over 13` above code updated to `if (user.age >= 18)`). **Blindness:** when most comments say nothing new, developers learn to skip all of them, so the one comment that actually matters goes unread.
+Commented-out code and history logs clutter the file. Closing brace comments and position markers are usually symptoms of a file or function that is too long or doing too much. Clean structure speaks for itself.
+
+### 5.3 Clear, Relevant, and Readable Comments
+
+If you must write a comment, make it highly specific, relevant to current constraints, and easily readable in plain text.
+
+**Do:**
+- Write clear `TODO` comments that explain actual constraints or issues so the next developer knows exactly what to fix.
+  - Good:
+    ```javascript
+    // TODO: Add a timeout check here.
+    // Currently, if the server response > 5s, the UI freezes.
+    ```
+- Use plain text that is readable in any IDE.
+
+**Don't:**
+- Write "mumbling" comments that lack context.
+  - Bad: `// R.J. said this might cause a race condition... not sure if it works`
+- Write historical novels about dead dependencies or previous library versions that don't help the developer today.
+- Use HTML tags for visual formatting in your code editor.
+  - Bad: `// <p>Calculates the <b>final price</b>...</p>`
+
+Vague comments confuse readers. Overly detailed historical comments waste time. HTML-formatted comments force the developer's eyes to filter through tags just to read English, making editing a hassle.
+
+---
+
+## 6. Code Organization & Formatting
+
+### 6.1 The Newspaper Metaphor (Vertical Formatting)
+
+Structure your source files like a newspaper article, with the highest-level summary at the top and detailed implementations flowing naturally downward.
+
+**Do:**
+- Place your highest-level function (the "headline") at the absolute top of the file.
+- Place every supporting function just below its caller.
+- Group utility functions that serve a similar purpose together at the bottom (Conceptual Affinity).
+  - Good: Grouping `formatDate(dateString)` and `formatScore(number)` near each other.
+
+**Don't:**
+- Scramble functions in a random order.
+- Force developers to scroll up and down endlessly to find how a function is implemented.
+
+It builds trust with the reader. In three lines, a developer can read the top function and know exactly what the file does. Reading flows in a natural downward direction from high-level concepts to low-level details.
+
+### 6.2 Visual Hierarchy via Vertical Spacing
+
+Use blank lines to separate distinct concepts, and keep related lines vertically dense to create a scannable visual hierarchy.
+
+**Do:**
+- Use a blank line to indicate a new concept is starting.
+- Keep related lines of code tightly grouped together (vertically dense).
+  - Good:
+    ```javascript
+    // Data extraction group
+    const firstName = data.firstName;
+    const lastName = data.lastName;
+
+    // Business logic group
+    const yearsActive = currentYear - joinDate;
+    const titlePrefix = yearsActive > 5 ? "Veteran" : "Member";
+
+    // Result group
+    return `${titlePrefix} ${firstName}`;
+    ```
+- Use proper indentation for each scope level.
+
+**Don't:**
+- Write a massive wall of text with no vertical spacing (makes it hard to read).
+- Put blank lines between every single line of code (disconnects related logic).
+
+The brain processes visual groups far more easily than walls of text. Proper spacing drops mental effort and allows a developer to scan and navigate to any section at a glance.
+
+### 6.3 Variable Proximity and Team Standards
+
+Declare variables exactly where they are used to reduce mental baggage, and strictly follow your team's formatting standards.
+
+**Do:**
+- Move variables inside the specific nested block where they are used.
+- Declare variables right before they are needed.
+- Keep shared class properties in one designated place (usually the top of the class).
+- Follow team decisions on tabs vs. spaces, quotes, and brace placement.
+
+**Don't:**
+- Declare all variables at the top of a function if they aren't used until the end.
+  - Bad: `let report; ... // 20 lines of irrelevant code ... report = buildReport();`
+- Scatter shared class properties throughout a class just to be near one specific function.
+
+A variable declared too early is mental baggage the reader has to carry in their "mental stack" until it is finally used. Subjective formatting debates waste time; consistent team formatting ensures styling never gets in the way of understanding the code.
 
 ---
 
@@ -280,11 +402,15 @@ Redundant comments cause three major problems. **Clutter:** they double the text
 | Category | Do | Don't |
 |---|---|---|
 | **Naming** | Names that reveal intent, are pronounceable, and match scope length | Cryptic abbreviations, identical-looking chars, noise suffixes (`Manager`/`Data`), Hungarian encodings (`strName`) |
+| **Self-documenting code** | Extract complex logic into well-named booleans, functions, and constants (`ONE_DAY_IN_MS`) | Comments explaining messy code, single-letter variables (`d`), raw magic numbers (`86400000`) |
 | **Functions** | Small functions, one thing each, single level of abstraction | Massive functions mixing high-level decisions with low-level API calls |
 | **Arguments** | Zero or one arg; group 3+ into an object | Long arg lists, boolean flags, output arguments, hidden side effects |
 | **Control flow** | Commands (do things) or Queries (answer things), never both | Functions that mutate state and return values simultaneously |
 | **Errors** | Throw exceptions; catch in dedicated handler functions | Return error codes forcing nested `if/else`; global error enums |
 | **Duplication** | Extract shared logic into a single authoritative place (DRY) | Copy-pasting switch statements or API boilerplate across files |
 | **Types** | Polymorphism via interfaces/factories for type-dependent behavior | Repeated `switch(type)` blocks scattered across functions |
-| **Comments** | Explain *why*, warnings, TODOs, public API docs | Explain *what* code does — those comments rot into lies |
-| **Noise comments** | Let names explain themselves; add doc comments only where they provide real value | Redundant English translations of code, obvious labels, forced valueless JSDoc on every function |
+| **Comments** | Explain *why*, warnings, specific plain-text TODOs, public API docs | Explain *what* code does, mumbling comments, HTML-formatted comments |
+| **Version control** | Rely on `git log` for history and authorship; delete dead code | Commented-out code, authorship tags, journal logs, closing brace comments |
+| **File structure** | Headline function at top, callers above callees, related utilities grouped | Random function order, scrolling endlessly to find implementations |
+| **Vertical spacing** | Blank lines between concepts, tight grouping for related lines | Walls of text with no spacing, or blank lines between every single line |
+| **Variable proximity** | Declare variables right where they are used; follow team formatting standards | Variables declared 20 lines before use; personal style over team conventions |
